@@ -6,8 +6,12 @@
 one_node() -> one_node([], #node_state{value=nil}).
 one_node(Cohorts, State) -> receive
         {add_cohort, Pid} -> one_node(lists:append(Cohorts, [Pid]), State);
-        {propose_value, Value} -> one_node(Cohorts, #node_state{value=Value})
+        {propose_value, Value} -> one_node(Cohorts, #node_state{value=Value});
+        {start_2pc} -> query_to_commit(Cohorts)
     end.
+
+query_to_commit(OtherNodes) ->
+    lists:map(fun(Node) -> Node ! {query, self()} end, OtherNodes).
 
 setup() ->
     A = spawn(nodes, one_node, []),
@@ -16,5 +20,8 @@ setup() ->
     A ! {add_cohort, B},
     A ! {add_cohort, C},
     A ! {propose_value, commit}, 
+    B ! {propose_value, commit}, 
+    C ! {propose_value, commit}, 
+    A ! {start_2pc},
     nothing.
 start() -> nothing.
