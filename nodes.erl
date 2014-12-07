@@ -33,14 +33,18 @@ completion(Cohorts, Basket) ->
         % TODO: broadcast(Cohorts, Message)
         Commit ->
             broadcast(Cohorts, {commit, self()}),
-            wait_acknowledgements(Cohorts, commit);
+            wait_acknowledgements(length(Cohorts), commit);
         true ->
             broadcast(Cohorts, {abort, self()}),
-            wait_acknowledgements(Cohorts, abort)
+            wait_acknowledgements(length(Cohorts), abort)
     end.
 
-wait_acknowledgements(Cohorts, FinalState) ->
-    log_final_state(FinalState).
+wait_acknowledgements(0, FinalState) ->
+    log_final_state(FinalState);
+wait_acknowledgements(RemainingCohortsNumber, FinalState) ->
+    receive 
+        {acknowledgement} -> wait_acknowledgements(RemainingCohortsNumber - 1, FinalState)
+    end.
 
 log_final_state(FinalState) ->
     if 
