@@ -31,7 +31,9 @@ completion(Cohorts, Basket) ->
     Commit = lists:all(fun(Agreement) -> Agreement == yes end, Basket),
     if
         % TODO: broadcast(Cohorts, Message)
-        Commit -> lists:map(fun(Node) -> Node ! {commit} end, Cohorts)
+        Commit ->
+            lists:map(fun(Node) -> Node ! {commit} end, Cohorts),
+            log("COMMIT!")
     end.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
@@ -44,7 +46,8 @@ cohort(Cohorts, State) -> receive
             if
                 State#cohort_state.decision == commit -> Coordinator ! {agreement, yes}
             end,
-        cohort(Cohorts, State)
+        cohort(Cohorts, State);
+        {commit} -> log("COMMIT!")
     end.
 
 query_to_commit(OtherNodes) ->
