@@ -33,10 +33,19 @@ completion(Cohorts, Basket) ->
         % TODO: broadcast(Cohorts, Message)
         Commit ->
             broadcast(Cohorts, {commit, self()}),
-            log("COMMIT!");
+            wait_acknowledgements(Cohorts, commit);
         true ->
             broadcast(Cohorts, {abort, self()}),
-            log("ABORT!")
+            wait_acknowledgements(Cohorts, abort)
+    end.
+
+wait_acknowledgements(Cohorts, FinalState) ->
+    log_final_state(FinalState).
+
+log_final_state(FinalState) ->
+    if 
+        FinalState == commit -> log("COMMIT!");
+        FinalState == abort -> log("ABORT!")
     end.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
@@ -49,10 +58,10 @@ cohort(Cohorts, State) -> receive
             Coordinator ! {agreement, State#cohort_state.decision},
             cohort(Cohorts, State);
         {commit, Coordinator} ->
-            log("COMMIT!"),
+            log_final_state(commit),
             Coordinator ! {acknowledgement};
         {abort, Coordinator} ->
-            log("ABORT!"),
+            log_final_state(abort),
             Coordinator ! {acknowledgement}
     end.
 
