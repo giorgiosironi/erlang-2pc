@@ -7,7 +7,9 @@
 
 coordinator() -> coordinator([], #coordinator_state{decisions_basket=[]}).
 coordinator(Cohorts, State) -> receive
-        {add_cohort, Pid} -> coordinator(lists:append(Cohorts, [Pid]), State);
+        {add_cohort, Pid} -> 
+            log("Added cohort: ~p", [Pid]),
+            coordinator(lists:append(Cohorts, [Pid]), State);
         {start_2pc_with_commit} -> query_to_commit(Cohorts), coordinator(Cohorts, State);
         {agreement, yes} ->
             Basket = lists:append(
@@ -34,6 +36,11 @@ cohort(Cohorts, State) -> receive
 
 query_to_commit(OtherNodes) ->
     lists:map(fun(Node) -> Node ! {query, self()} end, OtherNodes).
+
+log(String, Arguments) ->
+    io:fwrite("~p", [self()]),
+    io:fwrite(String, Arguments),
+    io:fwrite("~n", []).
 
 setup() ->
     A = spawn(nodes, coordinator, []),
