@@ -10,7 +10,9 @@ coordinator(Cohorts, State) -> receive
         {add_cohort, Pid} -> 
             log("Added cohort: ~p", [Pid]),
             coordinator(lists:append(Cohorts, [Pid]), State);
-        {start_2pc_with_commit} -> query_to_commit(Cohorts), coordinator(Cohorts, State);
+        {start_2pc_with_commit} ->
+            log("As coordinator tries to commit"),
+            query_to_commit(Cohorts), coordinator(Cohorts, State);
         {agreement, yes} ->
             Basket = lists:append(
                State#coordinator_state.decisions_basket,
@@ -27,7 +29,9 @@ completion(Cohorts, Basket) -> nothing.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
 cohort(Cohorts, State) -> receive
-        {propose_decision, Decision} -> cohort(Cohorts, #cohort_state{decision=Decision});
+        {propose_decision, Decision} ->
+            log("Will propose: ~p", [Decision]),
+            cohort(Cohorts, #cohort_state{decision=Decision});
         {query, Coordinator} -> if
             State#cohort_state.decision == commit -> Coordinator ! {agreement, yes}
         end,
@@ -37,6 +41,7 @@ cohort(Cohorts, State) -> receive
 query_to_commit(OtherNodes) ->
     lists:map(fun(Node) -> Node ! {query, self()} end, OtherNodes).
 
+log(String) -> log(String, []).
 log(String, Arguments) ->
     io:fwrite("~p", [self()]),
     io:fwrite(String, Arguments),
