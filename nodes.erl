@@ -1,5 +1,5 @@
 -module(nodes).
--export([start/0, coordinator/0, cohort/0]).
+-export([test_commit/0, test_abort/0, coordinator/0, cohort/0]).
 
 -record(coordinator_state, {decisions_basket}).
 -record(cohort_state, {decision}).
@@ -13,11 +13,11 @@ coordinator(Cohorts, State) -> receive
         {start_2pc_with_commit} ->
             log("As coordinator, 1st phase trying to commit"),
             query_to_commit(Cohorts), coordinator(Cohorts, State);
-        {agreement, yes} ->
+        {agreement, Agreement} ->
             log("As coordinator received a yes"),
             Basket = lists:append(
                State#coordinator_state.decisions_basket,
-               [yes]
+               [Agreement]
             ),
             VotingFinished = length(Basket) == length(Cohorts),
             if 
@@ -33,7 +33,10 @@ completion(Cohorts, Basket) ->
         % TODO: broadcast(Cohorts, Message)
         Commit ->
             lists:map(fun(Node) -> Node ! {commit} end, Cohorts),
-            log("COMMIT!")
+            log("COMMIT!");
+        true ->
+            lists:map(fun(Node) -> Node ! {abort} end, Cohorts),
+            log("ABORT!")
     end.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
@@ -43,11 +46,10 @@ cohort(Cohorts, State) -> receive
             cohort(Cohorts, #cohort_state{decision=Decision});
         {query, Coordinator} ->
             log("Queried by coordinator"),
-            if
-                State#cohort_state.decision == commit -> Coordinator ! {agreement, yes}
-            end,
-        cohort(Cohorts, State);
-        {commit} -> log("COMMIT!")
+            Coordinator ! {agreement, State#cohort_state.decision},
+            cohort(Cohorts, State);
+        {commit} -> log("COMMIT!");
+        {abort} -> log("ABORT!")
     end.
 
 query_to_commit(OtherNodes) ->
@@ -70,13 +72,24 @@ log(String, Arguments) ->
       )
     ).
 
-start() -> 
+test_commit() -> 
     A = spawn(nodes, coordinator, []),
     B = spawn(nodes, cohort, []),
     C = spawn(nodes, cohort, []),
     A ! {add_cohort, B},
     A ! {add_cohort, C},
 
-    B ! {propose_decision, commit}, 
-    C ! {propose_decision, commit},
+    B ! {propose_decision, yes}, 
+    C ! {propose_decision, yes},
+    A ! {start_2pc_with_commit}.
+
+test_abort() -> 
+    A = spawn(nodes, coordinator, []),
+    B = spawn(nodes, cohort, []),
+    C = spawn(nodes, cohort, []),
+    A ! {add_cohort, B},
+    A ! {add_cohort, C},
+
+    B ! {propose_decision, yes}, 
+    C ! {propose_decision, no},
     A ! {start_2pc_with_commit}.
