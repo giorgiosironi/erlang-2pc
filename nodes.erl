@@ -1,20 +1,20 @@
 -module(nodes).
 -export([setup/0, start/0, coordinator/0, cohort/0]).
 
--record(node_state, {value}).
+-record(cohort_state, {decision}).
 
 
-coordinator() -> coordinator([], #node_state{value=nil}).
+coordinator() -> coordinator([], nil).
 coordinator(Cohorts, State) -> receive
         {add_cohort, Pid} -> coordinator(lists:append(Cohorts, [Pid]), State);
         {start_2pc_with_commit} -> query_to_commit(Cohorts)
     end.
 
-cohort() -> cohort([], #node_state{value=nil}).
+cohort() -> cohort([], #cohort_state{decision=nil}).
 cohort(Cohorts, State) -> receive
-        {propose_value, Value} -> cohort(Cohorts, #node_state{value=Value});
+        {propose_decision, Decision} -> cohort(Cohorts, #cohort_state{decision=Decision});
         {query, Coordinator} -> if
-            State#node_state.value == commit -> Coordinator ! {agreement, yes}
+            State#cohort_state.decision == commit -> Coordinator ! {agreement, yes}
         end,
         cohort(Cohorts, State)
     end.
@@ -28,8 +28,8 @@ setup() ->
     C = spawn(nodes, cohort, []),
     A ! {add_cohort, B},
     A ! {add_cohort, C},
-    B ! {propose_value, commit}, 
-    C ! {propose_value, commit}, 
+    B ! {propose_decision, commit}, 
+    C ! {propose_decision, commit}, 
     A ! {start_2pc_with_commit},
     nothing.
 start() -> nothing.
