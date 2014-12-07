@@ -14,8 +14,14 @@ coordinator(Cohorts, State) -> receive
                State#coordinator_state.decisions_basket,
                [yes]
             ),
-            coordinator(Cohorts, State#coordinator_state{decisions_basket=Basket})
+            VotingFinished = length(Basket) == length(Cohorts),
+            if 
+                VotingFinished -> completion(Cohorts, Basket);
+                true -> coordinator(Cohorts, State#coordinator_state{decisions_basket=Basket})
+            end
     end.
+
+completion(Cohorts, Basket) -> nothing.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
 cohort(Cohorts, State) -> receive
