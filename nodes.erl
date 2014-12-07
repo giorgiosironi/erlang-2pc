@@ -32,10 +32,10 @@ completion(Cohorts, Basket) ->
     if
         % TODO: broadcast(Cohorts, Message)
         Commit ->
-            lists:map(fun(Node) -> Node ! {commit} end, Cohorts),
+            broadcast(Cohorts, {commit}),
             log("COMMIT!");
         true ->
-            lists:map(fun(Node) -> Node ! {abort} end, Cohorts),
+            broadcast(Cohorts, {abort}),
             log("ABORT!")
     end.
 
@@ -53,7 +53,10 @@ cohort(Cohorts, State) -> receive
     end.
 
 query_to_commit(OtherNodes) ->
-    lists:map(fun(Node) -> Node ! {query, self()} end, OtherNodes).
+    broadcast(OtherNodes, {query, self()}).
+
+broadcast(Nodes, Message) ->
+    lists:map(fun(Node) -> Node ! Message end, Nodes).
 
 log(String) -> log(String, []).
 log(String, Arguments) ->
