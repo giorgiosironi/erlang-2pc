@@ -8,12 +8,13 @@
 coordinator() -> coordinator([], #coordinator_state{decisions_basket=[]}).
 coordinator(Cohorts, State) -> receive
         {add_cohort, Pid} -> 
-            log("Added cohort: ~p", [Pid]),
+            log("As coordinator added cohort: ~p", [Pid]),
             coordinator(lists:append(Cohorts, [Pid]), State);
         {start_2pc_with_commit} ->
-            log("As coordinator tries to commit"),
+            log("As coordinator, 1st phase trying to commit"),
             query_to_commit(Cohorts), coordinator(Cohorts, State);
         {agreement, yes} ->
+            log("As coordinator received a yes"),
             Basket = lists:append(
                State#coordinator_state.decisions_basket,
                [yes]
@@ -25,16 +26,24 @@ coordinator(Cohorts, State) -> receive
             end
     end.
 
-completion(Cohorts, Basket) -> nothing.
+completion(Cohorts, Basket) -> 
+    log("As coordinator, 2nd phase"),
+    Commit = lists:all(fun(Agreement) -> Agreement == yes end, Basket),
+    if
+        % TODO: broadcast(Cohorts, Message)
+        Commit -> lists:map(fun(Node) -> Node ! {commit} end, Cohorts)
+    end.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
 cohort(Cohorts, State) -> receive
         {propose_decision, Decision} ->
             log("Will propose: ~p", [Decision]),
             cohort(Cohorts, #cohort_state{decision=Decision});
-        {query, Coordinator} -> if
-            State#cohort_state.decision == commit -> Coordinator ! {agreement, yes}
-        end,
+        {query, Coordinator} ->
+            log("Queried by coordinator"),
+            if
+                State#cohort_state.decision == commit -> Coordinator ! {agreement, yes}
+            end,
         cohort(Cohorts, State)
     end.
 
