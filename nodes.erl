@@ -1,13 +1,20 @@
 -module(nodes).
 -export([setup/0, start/0, coordinator/0, cohort/0]).
 
+-record(coordinator_state, {decisions_basket}).
 -record(cohort_state, {decision}).
 
 
-coordinator() -> coordinator([], nil).
+coordinator() -> coordinator([], #coordinator_state{decisions_basket=[]}).
 coordinator(Cohorts, State) -> receive
         {add_cohort, Pid} -> coordinator(lists:append(Cohorts, [Pid]), State);
-        {start_2pc_with_commit} -> query_to_commit(Cohorts)
+        {start_2pc_with_commit} -> query_to_commit(Cohorts), coordinator(Cohorts, State);
+        {agreement, yes} ->
+            Basket = lists:append(
+               State#coordinator_state.decisions_basket,
+               [yes]
+            ),
+            coordinator(Cohorts, State#coordinator_state{decisions_basket=Basket})
     end.
 
 cohort() -> cohort([], #cohort_state{decision=nil}).
