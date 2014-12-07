@@ -32,10 +32,10 @@ completion(Cohorts, Basket) ->
     if
         % TODO: broadcast(Cohorts, Message)
         Commit ->
-            broadcast(Cohorts, {commit}),
+            broadcast(Cohorts, {commit, self()}),
             log("COMMIT!");
         true ->
-            broadcast(Cohorts, {abort}),
+            broadcast(Cohorts, {abort, self()}),
             log("ABORT!")
     end.
 
@@ -48,8 +48,12 @@ cohort(Cohorts, State) -> receive
             log("Queried by coordinator"),
             Coordinator ! {agreement, State#cohort_state.decision},
             cohort(Cohorts, State);
-        {commit} -> log("COMMIT!");
-        {abort} -> log("ABORT!")
+        {commit, Coordinator} ->
+            log("COMMIT!"),
+            Coordinator ! {acknowledgement};
+        {abort, Coordinator} ->
+            log("ABORT!"),
+            Coordinator ! {acknowledgement}
     end.
 
 query_to_commit(OtherNodes) ->
