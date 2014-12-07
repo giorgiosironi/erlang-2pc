@@ -43,9 +43,20 @@ query_to_commit(OtherNodes) ->
 
 log(String) -> log(String, []).
 log(String, Arguments) ->
-    io:fwrite("~p", [self()]),
-    io:fwrite(String, Arguments),
-    io:fwrite("~n", []).
+    io:fwrite(
+      string:join(
+        [
+            "~p - ",
+            String,
+            "~n"
+        ],
+        ""
+      ),
+      lists:append(
+        [self()],
+        Arguments
+      )
+    ).
 
 start() -> 
     A = spawn(nodes, coordinator, []),
