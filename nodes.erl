@@ -1,5 +1,5 @@
 -module(nodes).
--export([setup/0, start/0, coordinator/0, cohort/0]).
+-export([start/0, coordinator/0, cohort/0]).
 
 -record(coordinator_state, {decisions_basket}).
 -record(cohort_state, {decision}).
@@ -42,14 +42,13 @@ log(String, Arguments) ->
     io:fwrite(String, Arguments),
     io:fwrite("~n", []).
 
-setup() ->
+start() -> 
     A = spawn(nodes, coordinator, []),
     B = spawn(nodes, cohort, []),
     C = spawn(nodes, cohort, []),
     A ! {add_cohort, B},
     A ! {add_cohort, C},
+
     B ! {propose_decision, commit}, 
-    C ! {propose_decision, commit}, 
-    A ! {start_2pc_with_commit},
-    nothing.
-start() -> nothing.
+    C ! {propose_decision, commit},
+    A ! {start_2pc_with_commit}.
