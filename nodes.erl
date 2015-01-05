@@ -6,7 +6,7 @@
 
 
 coordinator() -> coordinator([], #coordinator_state{decisions_basket=[]}).
-coordinator(Cohorts, State) ->
+coordinator(Cohorts, #coordinator_state{decisions_basket = Basket} = State) ->
     receive
         {add_cohort, Pid} ->
             log("As coordinator added cohort: ~p", [Pid]),
@@ -16,16 +16,14 @@ coordinator(Cohorts, State) ->
             query_to_commit(Cohorts), coordinator(Cohorts, State);
         {agreement, Agreement} ->
             log("As coordinator received a yes"),
-            Basket = lists:append(
-               State#coordinator_state.decisions_basket,
-               [Agreement]
-            ),
-            VotingFinished = length(Basket) == length(Cohorts),
+            NewBasket = lists:append(Basket, [Agreement]),
+            VotingFinished = length(NewBasket) == length(Cohorts),
             case VotingFinished of
                 true ->
-                    completion(Cohorts, Basket);
+                    completion(Cohorts, NewBasket);
                 false ->
-                    coordinator(Cohorts, State#coordinator_state{decisions_basket=Basket})
+                    NewState = State#coordinator_state{decisions_basket=NewBasket},
+                    coordinator(Cohorts, NewState)
             end
     end.
 
