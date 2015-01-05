@@ -21,9 +21,11 @@ coordinator(Cohorts, State) ->
                [Agreement]
             ),
             VotingFinished = length(Basket) == length(Cohorts),
-            if
-                VotingFinished -> completion(Cohorts, Basket);
-                true -> coordinator(Cohorts, State#coordinator_state{decisions_basket=Basket})
+            case VotingFinished of
+                true ->
+                    completion(Cohorts, Basket);
+                false ->
+                    coordinator(Cohorts, State#coordinator_state{decisions_basket=Basket})
             end
     end.
 
