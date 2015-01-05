@@ -29,13 +29,13 @@ coordinator(Cohorts, State) ->
 
 completion(Cohorts, Basket) ->
     log("As coordinator, 2nd phase"),
-    Commit = lists:all(fun(Agreement) -> Agreement == yes end, Basket),
-    if
-        % TODO: broadcast(Cohorts, Message)
-        Commit ->
+    Consensus = lists:all(fun(Agreement) -> Agreement == yes end, Basket),
+    case Consensus of
+        true ->
+            % TODO: broadcast(Cohorts, Message)
             broadcast(Cohorts, {commit, self()}),
             wait_acknowledgements(length(Cohorts), commit);
-        true ->
+        false ->
             broadcast(Cohorts, {abort, self()}),
             wait_acknowledgements(length(Cohorts), abort)
     end.
