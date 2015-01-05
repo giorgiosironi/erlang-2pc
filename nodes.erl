@@ -32,15 +32,15 @@ coordinator(Cohorts, #coordinator_state{decisions_basket = Basket} = State) ->
 completion(Cohorts, Basket) ->
     log("As coordinator, 2nd phase"),
     Consensus = lists:all(fun(Agreement) -> Agreement == yes end, Basket),
-    case Consensus of
+    Action = case Consensus of
         true ->
             % TODO: broadcast(Cohorts, Message)
-            broadcast(Cohorts, {commit, self()}),
-            wait_acknowledgements(length(Cohorts), commit);
+            commit;
         false ->
-            broadcast(Cohorts, {abort, self()}),
-            wait_acknowledgements(length(Cohorts), abort)
-    end.
+            abort
+    end,
+    broadcast(Cohorts, {Action, self()}),
+    wait_acknowledgements(length(Cohorts), Action).
 
 wait_acknowledgements(0, FinalState) ->
     log_final_state(FinalState);
