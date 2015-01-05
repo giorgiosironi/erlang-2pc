@@ -12,7 +12,7 @@ coordinator(Cohorts, #coordinator_state{decisions_basket = Basket} = State) ->
     receive
         {add_cohort, Pid} ->
             log("As coordinator added cohort: ~p", [Pid]),
-            coordinator(lists:append(Cohorts, [Pid]), State);
+            coordinator([Pid|Cohorts], State);
         {start_2pc_with_commit} ->
             log("As coordinator, 1st phase trying to commit"),
             query_to_commit(Cohorts), coordinator(Cohorts, State);
