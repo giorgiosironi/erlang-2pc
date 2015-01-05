@@ -5,7 +5,9 @@
 -record(cohort_state, {decision}).
 
 
-coordinator() -> coordinator([], #coordinator_state{decisions_basket=[]}).
+coordinator() ->
+    coordinator([], #coordinator_state{decisions_basket=[]}).
+
 coordinator(Cohorts, #coordinator_state{decisions_basket = Basket} = State) ->
     receive
         {add_cohort, Pid} ->
@@ -52,7 +54,9 @@ log_final_state(commit) ->
 log_final_state(abort) ->
     log("ABORT!").
 
-cohort() -> cohort([], #cohort_state{decision=nil}).
+cohort() ->
+    cohort([], #cohort_state{decision=nil}).
+
 cohort(Cohorts, State) ->
     receive
         {propose_decision, Decision} ->
