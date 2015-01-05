@@ -18,7 +18,7 @@ coordinator(Cohorts, #coordinator_state{decisions_basket = Basket} = State) ->
             query_to_commit(Cohorts), coordinator(Cohorts, State);
         {agreement, Agreement} ->
             log("As coordinator received a yes"),
-            NewBasket = lists:append(Basket, [Agreement]),
+            NewBasket = [Agreement|Basket],
             VotingFinished = length(NewBasket) == length(Cohorts),
             case VotingFinished of
                 true ->
